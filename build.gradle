@@ -1,0 +1,34 @@
+plugins {
+    id 'java'
+    id 'net.minecraftforge.gradle' version '6.0.54'
+    id 'org.parchmentmc.librarian.forgegradle' version '1.2.0.7-dev-SNAPSHOT'
+}
+group = 'dev.nstut'
+version = '0.1.0'
+base.archivesName = 'clockwork-compat-forge-1.20.1'
+java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+minecraft {
+    mappings channel: 'parchment', version: '2023.09.03-1.20.1'
+}
+repositories {
+    mavenCentral()
+    flatDir { dirs 'libs' }
+}
+dependencies {
+    minecraft 'net.minecraftforge:forge:1.20.1-47.4.16'
+    compileOnly fg.deobf('local:clockwork:0.5.7.1')
+    compileOnly fg.deobf('local:kelvin:1.20.1-0.5.2')
+    compileOnly fg.deobf('local:create:1.20.1-6.0.8')
+    compileOnly 'org.spongepowered:mixin:0.8.5'
+}
+tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8' }
+jar {
+    manifest.attributes('MixinConfigs': 'clockworkcompat.mixins.json')
+    finalizedBy 'reobfJar'
+}
+tasks.register('conversionTest', JavaExec) {
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'dev.nstut.clockworkcompat.SteamConversionTest'
+}
+check.dependsOn conversionTest

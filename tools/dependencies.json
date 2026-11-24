@@ -1,0 +1,17 @@
+[
+  {
+    "name": "clockwork-0.5.7.1.jar",
+    "url": "https://cdn.modrinth.com/data/84USeAvk/versions/PPCx7dxb/clockwork-0.5.7.1.jar",
+    "sha256": "53c09b8c38296e4ebea6da4a1cbbbe999fa6d26d21bf2138618e6577eb4876d8"
+  },
+  {
+    "name": "kelvin-1.20.1-0.5.2.jar",
+    "url": "https://edge.forgecdn.net/files/9602/94/kelvin-1.20.1-0.5.2.jar",
+    "sha256": "1f70e4ada1f35d86d4e6000ad6908596865ddf471204c87e2fe0d8859f31e926"
+  },
+  {
+    "name": "create-1.20.1-6.0.8.jar",
+    "url": "https://edge.forgecdn.net/files/7178/761/create-1.20.1-6.0.8.jar",
+    "sha256": "6fbb910c367dbce8e4fc7e5bf64b6edd4de980906ed00af8e47e4af843c0d9b0"
+  }
+]
