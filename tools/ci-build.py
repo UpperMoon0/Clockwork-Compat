@@ -13,12 +13,33 @@ ROOT = Path(__file__).resolve().parents[1]
 def run(*argv):
     return subprocess.check_output(argv, cwd=ROOT, text=True).strip()
 
+def java17_environment():
+    # The portable launcher uses the worker's default JVM (typically Java 25).
+    # Forge 1.20.1 requires the separately provisioned Java 17 toolchain.
+    home = os.environ.get('JAVA_HOME_17') or os.environ.get('JAVA_HOME')
+    if not home:
+        raise RuntimeError('Missing provisioned Java 17 JDK')
+    home = Path(home).resolve()
+    suffix = '.exe' if os.name == 'nt' else ''
+    java = home / 'bin' / ('java' + suffix)
+    javac = home / 'bin' / ('javac' + suffix)
+    if not java.is_file() or not javac.is_file():
+        raise RuntimeError('Missing Java 17 JDK executables')
+    version = subprocess.check_output([str(javac), '-version'], text=True,
+                                      stderr=subprocess.STDOUT).strip()
+    if not version.startswith('javac 17.'):
+        raise RuntimeError(f'Expected Java 17 compiler, got {version}')
+    print(f'Using pinned {version}', flush=True)
+    return {**os.environ, 'JAVA_HOME': str(home),
+            'PATH': str(home / 'bin') + os.pathsep + os.environ.get('PATH', '')}
+
 def main():
+    env = java17_environment()
     subprocess.run([sys.executable, 'tools/fetch-deps.py'], cwd=ROOT, check=True)
     wrapper = (['cmd.exe', '/d', '/c', 'gradlew.bat'] if os.name == 'nt'
                else ['./gradlew'])
     subprocess.run(wrapper + ['--console=plain', 'clean', 'check', 'build'],
-                   cwd=ROOT, check=True)
+                   cwd=ROOT, check=True, env=env)
     jars = list((ROOT / 'build/libs').glob('clockwork-compat-forge-1.20.1-*.jar'))
     if len(jars) != 1:
         raise RuntimeError(f'Expected exactly one remapped addon JAR, got {jars}')
