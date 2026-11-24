@@ -23,6 +23,7 @@ import org.valkyrienskies.kelvin.api.DuctNetwork;
 import org.valkyrienskies.kelvin.api.DuctNode;
 import org.valkyrienskies.kelvin.api.DuctNodePos;
 import org.valkyrienskies.kelvin.api.GasType;
+import org.valkyrienskies.kelvin.impl.DuctNodeInfo;
 import java.util.Map;
 
 @Mixin(value = SteamGeneratorBlockEntity.class, remap = false)
@@ -55,14 +56,22 @@ public abstract class SteamExtractorMixin {
         if (SteamConversion.positive(capacity)) {
             temperature = Math.max(temperature, network.getHeatEnergy(pos) / capacity);
         }
-        double moles = 0;
+        double currentCoefficient = 0;
         for (Map.Entry<GasType, Double> entry : network.getGasMassAt(pos).entrySet()) {
             double mass = entry.getValue();
             if (!Double.isFinite(mass) || mass < 0) return;
-            moles += entry.getKey().massToMoles(mass);
+            GasType type = entry.getKey();
+            double coefficient = SteamConversion.pressureCoefficient(type.getSpecificHeatCapacity(), type.getAdiabaticIndex());
+            if (!SteamConversion.positive(coefficient)) return;
+            currentCoefficient += mass * coefficient;
         }
-        int budget = SteamConversion.budget(moles, node.getVolume(), temperature,
-                temp, gas.massToMoles(SteamConversion.KG_PER_MB), limit);
+        DuctNodeInfo info = network.getNodeInfo().get(pos);
+        if (info == null) return;
+        double volume = node.getVolume() + info.getVolumeChange();
+        double coefficientPerMb = SteamConversion.pressureCoefficient(
+                gas.getSpecificHeatCapacity(), gas.getAdiabaticIndex()) * SteamConversion.KG_PER_MB;
+        int budget = SteamConversion.budget(currentCoefficient, volume, temperature,
+                temp, coefficientPerMb, limit);
         if (budget <= 0) return;
 
         // Keep rejected batches in persisted block-entity state; no re-drain.
