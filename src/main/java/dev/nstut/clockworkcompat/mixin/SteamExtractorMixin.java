@@ -27,12 +27,12 @@ import java.util.Map;
 
 @Mixin(value = SteamGeneratorBlockEntity.class, remap = false)
 public abstract class SteamExtractorMixin {
-    @Inject(method = "tick", at = @At("TAIL"), remap = false)
+    @Inject(method = "tick", at = @At("RETURN"), remap = false)
     private void clockworkcompat$transferGregTechSteam(CallbackInfo ci) {
         SteamGeneratorBlockEntity self = (SteamGeneratorBlockEntity) (Object) this;
         Level level = self.getLevel();
         // Native Create boilers always retain priority.
-        if (level == null || level.isClientSide || self.getTank() != null) return;
+        if (level == null || level.isClientSide || self.getDataToLoad() != null || self.getTank() != null) return;
         ResourceLocation steamId = new ResourceLocation("gtceu", "steam");
         if (!ForgeRegistries.FLUIDS.containsKey(steamId)) return;
         Fluid steam = ForgeRegistries.FLUIDS.getValue(steamId);
@@ -50,13 +50,18 @@ public abstract class SteamExtractorMixin {
         if (!Double.isFinite(pressure) || pressure < 0 || pressure >= limit) return;
         double temp = steam.getFluidType().getTemperature(new FluidStack(steam, 1));
         if (!SteamConversion.positive(temp) || temp > node.getMaxTemperature()) return;
+        double temperature = network.getTemperatureAt(pos);
+        double capacity = network.getNodeHeatCapacity(pos);
+        if (SteamConversion.positive(capacity)) {
+            temperature = Math.max(temperature, network.getHeatEnergy(pos) / capacity);
+        }
         double moles = 0;
         for (Map.Entry<GasType, Double> entry : network.getGasMassAt(pos).entrySet()) {
             double mass = entry.getValue();
             if (!Double.isFinite(mass) || mass < 0) return;
             moles += entry.getKey().massToMoles(mass);
         }
-        int budget = SteamConversion.budget(moles, node.getVolume(), network.getTemperatureAt(pos),
+        int budget = SteamConversion.budget(moles, node.getVolume(), temperature,
                 temp, gas.massToMoles(SteamConversion.KG_PER_MB), limit);
         if (budget <= 0) return;
 
